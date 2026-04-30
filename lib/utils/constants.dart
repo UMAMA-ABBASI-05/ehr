@@ -10,6 +10,7 @@ class AppConstants {
   static const String loginEndpoint = '/login';
   //          PATEINTS
   static const String getPatientEndpoint = '/patients';
+  
   static const String searchPatientEndpoint = '/patients/search';
   // PATEINTS section ke andar
   static const String getPatientByIdEndpoint = '/patients/';
