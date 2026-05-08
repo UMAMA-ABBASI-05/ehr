@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   // Backend API base URL
-  static const String baseUrl = 'http://192.168.16.14:8001';
+  static const String baseUrl = 'http://192.168.50.14:8001';
 
   // API Endpoints
   //        LOGIN / SING UP
@@ -10,7 +10,7 @@ class AppConstants {
   static const String loginEndpoint = '/login';
   //          PATEINTS
   static const String getPatientEndpoint = '/patients';
-  
+
   static const String searchPatientEndpoint = '/patients/search';
   // PATEINTS section ke andar
   static const String getPatientByIdEndpoint = '/patients/';

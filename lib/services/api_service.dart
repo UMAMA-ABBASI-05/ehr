@@ -23,6 +23,26 @@ class ApiService {
   //   final prefs = await SharedPreferences.getInstance();
   //   await prefs.remove('doctor_id');
   // }
+  static Future<bool> submitClaim({
+    required int vid,
+    required int mpi,
+    required bool serviceIncluded,
+    required bool labIncluded,
+    required double totalFee,
+  }) async {
+    final res = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/submit-claims'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'vid': vid,
+        'mpi': mpi,
+        'service_included': serviceIncluded,
+        'lab_included': labIncluded,
+        'total_fee': totalFee,
+      }),
+    );
+    return res.statusCode == 200 || res.statusCode == 201;
+  }
 
   static Future<Map<String, dynamic>> signup(Doctor doctor) async {
     try {

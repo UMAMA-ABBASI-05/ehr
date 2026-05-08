@@ -1,9 +1,11 @@
+import 'package:ehr/services/shared_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/doctor.dart';
 import '../services/api_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (result['success'] == true) {
           final dynamic rawId = result['doctor_id'];
+          SessionService().savePatient(result);
 
           if (rawId != null) {
             int doctorId =
@@ -50,9 +53,14 @@ class _LoginScreenState extends State<LoginScreen> {
             // Session save karein
             await ApiService.saveDoctorSession(doctorId);
 
-            // ← Doctor name bhi save karo
+            // Doctor name save karo
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('doctorName', result['name'] ?? "Doctor");
+
+            // ← Role lo response se
+            final int role = result['role'] is int
+                ? result['role']
+                : int.tryParse(result['role']?.toString() ?? '2') ?? 2;
 
             if (mounted) {
               setState(() => _isLoading = false);
@@ -65,7 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HomeScreen(doctorId: doctorId),
+                  builder: (context) => role == 1
+                      ? const AdminDashboardScreen() // ← Admin
+                      : HomeScreen(doctorId: doctorId), // ← Normal
                 ),
               );
             }

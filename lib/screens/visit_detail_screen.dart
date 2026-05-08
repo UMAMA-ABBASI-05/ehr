@@ -33,6 +33,47 @@ class _VisitNoteDetailScreenState extends State<VisitNoteDetailScreen> {
         });
   }
 
+  Future<void> _submitClaim(
+      VisitNote note, List<LabReport> labs, double totalBill) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) =>
+            const Center(child: CircularProgressIndicator(color: primaryBlue)),
+      );
+
+      final ok = await ApiService.submitClaim(
+        vid: note.noteId,
+        mpi: note.mpi,
+        serviceIncluded: true,
+        labIncluded: labs.isNotEmpty,
+        totalFee: totalBill,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              ok ? 'Claim submitted successfully!' : 'Claim submission failed'),
+          backgroundColor: ok ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,7 +110,6 @@ class _VisitNoteDetailScreenState extends State<VisitNoteDetailScreen> {
               snapshot.data!['labs'] as List<LabReport>;
           final displayNote = note ?? widget.note;
 
-          // Bill calculations
           final double consultBill = displayNote.billAmount ?? 0;
           final double labBill = displayNote.labBill ?? 0;
           final double totalBill =
@@ -145,38 +185,33 @@ class _VisitNoteDetailScreenState extends State<VisitNoteDetailScreen> {
                         _LabReportCard(report: labs[index]),
                   ),
                   const SizedBox(height: 16),
-
-                  // --- TOTAL LAB CHARGES ---
                   _billRow("Total Lab Charges", labBill),
                   const SizedBox(height: 10),
-
-                  // --- TOTAL BILL ---
                   _billRow("Total Bill", totalBill, isTotal: true),
-                  const SizedBox(height: 24),
+                ],
 
-                  // --- SUBMIT CLAIM BUTTON ---
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Submit claim API
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        "Submit Claim",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
-                      ),
+                const SizedBox(height: 24),
+
+                // --- SUBMIT CLAIM — HAMESHA VISIBLE ---
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _submitClaim(displayNote, labs, totalBill),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      "Submit Claim",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
-                ],
+                ),
 
                 const SizedBox(height: 20),
               ],

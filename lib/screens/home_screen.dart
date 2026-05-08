@@ -1,3 +1,4 @@
+import 'package:ehr/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/patient_model.dart';
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeContent(doctorId: widget.doctorId),
       AddPatientScreen(),
       const Center(child: Text("Notifications Screen")),
-      const Center(child: Text("Profile Screen")),
+      ProfileScreen()
     ];
   }
 
