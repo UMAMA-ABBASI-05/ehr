@@ -72,7 +72,7 @@ class ApiService {
             'roll': 1,
           }));
       final data = jsonDecode(response.body);
-      if (response.statusCode == 201)
+      if (response.statusCode == 201 || response.statusCode == 200)
         return {'success': true, 'message': data['message']};
       return {'success': false, 'message': data['detail'] ?? 'Signup failed'};
     } catch (e) {
@@ -379,7 +379,7 @@ class ApiService {
         Uri.parse('${AppConstants.baseUrl}/add-hospital?name=$name'),
       );
       final data = jsonDecode(res.body);
-      if (res.statusCode == 201) return {'success': true, ...data};
+      if (res.statusCode == 200) return {'success': true, ...data};
       return {'success': false, 'message': data['detail'] ?? 'Failed'};
     } catch (e) {
       return {'success': false, 'message': e.toString()};
@@ -416,7 +416,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'hold_flag': holdFlag}),
       );
-      return res.statusCode == 201;
+      return res.statusCode == 201 || res.statusCode == 200;
     } catch (e) {
       return false;
     }
