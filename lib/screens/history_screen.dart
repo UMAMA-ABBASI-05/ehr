@@ -1,16 +1,48 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
-  static const Color primaryBlue = Color(0xFF1A3B5D);
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
 
-  // Hardcoded — API baad mein
-  final List<Map<String, String>> _history = const [
-    {'date': '2026-05-01', 'action': 'Patient Added', 'detail': 'MPI: 23'},
-    {'date': '2026-05-02', 'action': 'Visit Note', 'detail': 'MPI: 21'},
-    {'date': '2026-05-03', 'action': 'Lab Report', 'detail': 'MPI: 18'},
-  ];
+class _HistoryScreenState extends State<HistoryScreen> {
+  static const Color primaryBlue = Color(0xFF1A3B5D);
+  late Future<List<dynamic>> _historyFuture;
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyFuture = ApiService.getConfigHistory();
+  }
+
+  Future<void> _sendToEngine() async {
+    setState(() => _sending = true);
+    try {
+      final ok = await ApiService.sendConfigToEngine();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Sent to engine!' : 'Send failed'),
+          backgroundColor: ok ? Colors.green : Colors.red,
+        ),
+      );
+      // Refresh history
+      setState(() {
+        _historyFuture = ApiService.getConfigHistory();
+      });
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,70 +59,97 @@ class HistoryScreen extends StatelessWidget {
             style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
-          // Send to Engine button
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton(
-              onPressed: () {
-                // TODO: Send to engine API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Sent to engine!'),
-                    backgroundColor: Colors.green,
+            child: _sending
+                ? const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: primaryBlue, strokeWidth: 2),
+                    ),
+                  )
+                : ElevatedButton(
+                    onPressed: _sendToEngine,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text('Send to Engine',
+                        style: TextStyle(color: Colors.white, fontSize: 12)),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              ),
-              child: const Text('Send to Engine',
-                  style: TextStyle(color: Colors.white, fontSize: 12)),
-            ),
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _history.length,
-        itemBuilder: (_, i) {
-          final item = _history[i];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
+      body: FutureBuilder<List<dynamic>>(
+        future: _historyFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+                child: CircularProgressIndicator(color: primaryBlue));
+          }
+          if (snapshot.hasError) {
+            return Center(
+                child: Text('Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red)));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+                child: Text('No history found',
+                    style: TextStyle(color: Colors.grey)));
+          }
+
+          final history = snapshot.data!;
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.history, color: primaryBlue),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item['action'] ?? '',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: primaryBlue)),
-                      const SizedBox(height: 4),
-                      Text(item['detail'] ?? '',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.black54)),
-                      Text(item['date'] ?? '',
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey)),
-                    ],
-                  ),
+            itemCount: history.length,
+            itemBuilder: (_, i) {
+              final item = history[i];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.history, color: primaryBlue),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['hospital'] ?? 'N/A',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: primaryBlue),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Operation: ${item['operation'] ?? 'N/A'}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                          ),
+                          Text(
+                            'Count: ${item['count'] ?? 0}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),

@@ -371,4 +371,54 @@ class ApiService {
       return {"success": false, "message": e.toString()};
     }
   }
+
+  // Add Hospital
+  static Future<Map<String, dynamic>> addHospital(String name) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/add-hospital?name=$name'),
+      );
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 201) return {'success': true, ...data};
+      return {'success': false, 'message': data['detail'] ?? 'Failed'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+// Get All Hospitals
+  static Future<List<dynamic>> getAllHospitals() async {
+    final res =
+        await http.get(Uri.parse('${AppConstants.baseUrl}/all-hospitals'));
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed to load hospitals');
+  }
+
+// Config History
+  static Future<List<dynamic>> getConfigHistory() async {
+    final res =
+        await http.get(Uri.parse('${AppConstants.baseUrl}/config-history'));
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed to load history');
+  }
+
+// Send Config to Engine
+  static Future<bool> sendConfigToEngine() async {
+    final res = await http
+        .post(Uri.parse('${AppConstants.baseUrl}/sent-config-to-engine'));
+    return res.statusCode == 200 || res.statusCode == 201;
+  }
+
+  static Future<bool> changeConfigStatus(bool holdFlag) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/change-config-status'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'hold_flag': holdFlag}),
+      );
+      return res.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
 }

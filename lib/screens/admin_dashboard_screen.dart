@@ -1,4 +1,5 @@
 import 'package:ehr/screens/history_screen.dart';
+import 'package:ehr/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'hospitals_screen.dart';
 
@@ -24,7 +25,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     super.dispose();
   }
 
-  void _saveHospital() {
+  void _saveHospital() async {
     if (_hospitalNameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -33,23 +34,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
       return;
     }
-    // TODO: Save hospital API call
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Hospital saved!'), backgroundColor: Colors.green),
-    );
-    setState(() {
-      _showAddHospital = false;
-      _hospitalNameCtrl.clear();
-    });
-  }
 
-  void _saveHoldData() {
-    // TODO: Hold data API call
+    final result = await ApiService.addHospital(_hospitalNameCtrl.text.trim());
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Hold data: ${_holdData ? 'Enabled' : 'Disabled'}'),
-        backgroundColor: Colors.green,
+        content: Text(result['success'] == true
+            ? 'Hospital added! ID: ${result['hospital_id']}'
+            : result['message'] ?? 'Failed'),
+        backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (result['success'] == true) {
+      setState(() {
+        _showAddHospital = false;
+        _hospitalNameCtrl.clear();
+      });
+    }
+  }
+
+  void _saveHoldData() async {
+    final ok = await ApiService.changeConfigStatus(_holdData);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? 'Hold data: ${_holdData ? 'Enabled' : 'Disabled'}'
+            : 'Failed to update'),
+        backgroundColor: ok ? Colors.green : Colors.red,
       ),
     );
   }
@@ -233,7 +247,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
+                    backgroundColor: primaryBlue,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
