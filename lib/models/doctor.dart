@@ -7,7 +7,7 @@ class Doctor {
   final String? about;
   final String? phoneNo;
   final DateTime? dateJoin;
-
+  final int? hospitalId;
   Doctor({
     this.doctorId,
     required this.name,
@@ -17,6 +17,7 @@ class Doctor {
     this.about,
     this.phoneNo,
     this.dateJoin,
+    this.hospitalId,
   });
 
   // JSON se Doctor object banane ke liye
@@ -31,6 +32,7 @@ class Doctor {
       phoneNo: json['phone_no'],
       dateJoin:
           json['date_join'] != null ? DateTime.parse(json['date_join']) : null,
+      hospitalId: json['hospital_id'],
     );
   }
 

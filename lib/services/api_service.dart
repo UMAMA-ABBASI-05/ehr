@@ -19,6 +19,67 @@ class ApiService {
     return prefs.getInt('doctor_id');
   }
 
+  static Future<Map<String, dynamic>> signupAdmin(
+      String email, String password) async {
+    try {
+      final url = Uri.parse('${AppConstants.baseUrl}/signup-admin');
+      final response = await http.post(url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}));
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201)
+        return {'success': true, 'message': data['message']};
+      return {'success': false, 'message': data['detail'] ?? 'Signup failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginAdmin(
+      String email, String password) async {
+    try {
+      final url = Uri.parse('${AppConstants.baseUrl}/login-admin');
+      final response = await http.post(url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}));
+      print("Admin Login Response: ${response.body}");
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, ...data};
+      }
+      final error = jsonDecode(response.body);
+      return {'success': false, 'message': error['detail'] ?? 'Login failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> signupDoctor({
+    required String name,
+    required String email,
+    required String password,
+    required int hospitalId,
+  }) async {
+    try {
+      final url = Uri.parse('${AppConstants.baseUrl}/signup');
+      final response = await http.post(url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'name': name,
+            'email': email,
+            'password': password,
+            'hospital_id': hospitalId,
+            'roll': 1,
+          }));
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201)
+        return {'success': true, 'message': data['message']};
+      return {'success': false, 'message': data['detail'] ?? 'Signup failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
+
   // static Future<void> clearSession() async {
   //   final prefs = await SharedPreferences.getInstance();
   //   await prefs.remove('doctor_id');
@@ -44,32 +105,32 @@ class ApiService {
     return res.statusCode == 200 || res.statusCode == 201;
   }
 
-  static Future<Map<String, dynamic>> signup(Doctor doctor) async {
-    try {
-      final url = Uri.parse(
-        '${AppConstants.baseUrl}${AppConstants.signupEndpoint}',
-      );
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(doctor.toJson()),
-      );
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': jsonDecode(response.body)['message'],
-        };
-      } else {
-        final error = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': error['detail'] ?? 'Signup failed',
-        };
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error: ${e.toString()}'};
-    }
-  }
+  // static Future<Map<String, dynamic>> signup(Doctor doctor) async {
+  //   try {
+  //     final url = Uri.parse(
+  //       '${AppConstants.baseUrl}${AppConstants.signupEndpoint}',
+  //     );
+  //     final response = await http.post(
+  //       url,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode(doctor.toJson()),
+  //     );
+  //     if (response.statusCode == 200) {
+  //       return {
+  //         'success': true,
+  //         'message': jsonDecode(response.body)['message'],
+  //       };
+  //     } else {
+  //       final error = jsonDecode(response.body);
+  //       return {
+  //         'success': false,
+  //         'message': error['detail'] ?? 'Signup failed',
+  //       };
+  //     }
+  //   } catch (e) {
+  //     return {'success': false, 'message': 'Network error: ${e.toString()}'};
+  //   }
+  // }
 
   static Future<Map<String, dynamic>> login(Doctor doctor) async {
     try {

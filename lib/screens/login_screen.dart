@@ -32,61 +32,65 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final doctor = Doctor(
-        name: '',
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
       try {
-        final result = await ApiService.login(doctor);
-        print("Login Result: $result");
+        // Pehle doctor login try karo
+        final doctor = Doctor(
+          name: '',
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        Map<String, dynamic> result = await ApiService.login(doctor);
+        print("Doctor Login Result: $result");
+
+        // Agar doctor login fail ho toh admin login try karo
+        if (result['success'] != true) {
+          result = await ApiService.loginAdmin(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+          print("Admin Login Result: $result");
+        }
 
         if (result['success'] == true) {
-          final dynamic rawId = result['doctor_id'];
           SessionService().savePatient(result);
 
-          if (rawId != null) {
-            int doctorId =
-                rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('doctorName', result['name'] ?? "User");
 
-            // Session save karein
-            await ApiService.saveDoctorSession(doctorId);
+          // Role check — admin ka roll 2 hai
+          final int roll = result['roll'] is int
+              ? result['roll']
+              : int.tryParse(result['roll']?.toString() ?? '1') ?? 1;
 
-            // Doctor name save karo
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('doctorName', result['name'] ?? "Doctor");
+          final dynamic rawId = result['users_id'] ?? result['doctor_id'];
+          int userId =
+              rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
 
-            // ← Role lo response se
-            final int role = result['role'] is int
-                ? result['role']
-                : int.tryParse(result['role']?.toString() ?? '2') ?? 2;
+          await ApiService.saveDoctorSession(userId);
 
-            if (mounted) {
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text("Welcome back!"),
-                    backgroundColor: Colors.green),
-              );
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Welcome back!"),
+                  backgroundColor: Colors.green),
+            );
 
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => role == 1
-                      ? const AdminDashboardScreen() // ← Admin
-                      : HomeScreen(doctorId: doctorId), // ← Normal
-                ),
-              );
-            }
-          } else {
-            _showError("Login successful but Doctor ID missing in response");
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => roll == 2
+                    ? const AdminDashboardScreen()
+                    : HomeScreen(doctorId: userId),
+              ),
+            );
           }
         } else {
           _showError(result['message'] ?? "Invalid credentials");
         }
       } catch (e) {
-        _showError("Connection Error: Check IP 192.168.100.109 and Firewall");
+        _showError("Connection Error: Check IP and Firewall");
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }

@@ -15,6 +15,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _hospitalIdController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -23,6 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _hospitalIdController.dispose();
     super.dispose();
   }
 
@@ -30,19 +32,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final doctor = Doctor(
+      final hospitalId = int.tryParse(_hospitalIdController.text.trim()) ?? 0;
+
+      final result = await ApiService.signupDoctor(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        hospitalId: hospitalId,
       );
 
-      final result = await ApiService.signup(doctor);
       setState(() => _isLoading = false);
 
-      if (result['success']) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(result['message']), backgroundColor: Colors.green),
+              content: Text(result['message'] ?? 'Success'),
+              backgroundColor: Colors.green),
         );
         Navigator.pushReplacement(
           context,
@@ -51,7 +56,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(result['message']), backgroundColor: Colors.red),
+              content: Text(result['message'] ?? 'Failed'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -69,8 +75,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 80),
-
-                // ── Title ────────────────────────────────────────────
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -84,19 +88,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // ── Name ──────────────────────────────────────────────
+                // Name
                 _buildField(
                   controller: _nameController,
                   hint: "Enter your name",
                   icon: Icons.person_outline,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Naam darj karein';
-                    return null;
-                  },
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Naam darj karein' : null,
                 ),
                 const SizedBox(height: 16),
 
-                // ── Email ─────────────────────────────────────────────
+                // Email
                 _buildField(
                   controller: _emailController,
                   hint: "Enter your email",
@@ -110,7 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── Password ──────────────────────────────────────────
+                // Password
                 _buildPasswordField(
                   controller: _passwordController,
                   hint: "Enter your password",
@@ -123,9 +125,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Hospital ID ← New field
+                _buildField(
+                  controller: _hospitalIdController,
+                  hint: "Enter Hospital ID",
+                  icon: Icons.local_hospital_outlined,
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v == null || v.isEmpty)
+                      return 'Hospital ID darj karein';
+                    if (int.tryParse(v) == null)
+                      return 'Sirf number darj karein';
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 48),
 
-                // ── Sign Up button ────────────────────────────────────
+                // Sign Up Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -151,11 +169,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Sign in link ──────────────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account? ",
+                    const Text("Already have an account? ",
                         style:
                             TextStyle(color: Color(0xFF666666), fontSize: 14)),
                     GestureDetector(
@@ -171,6 +188,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 30),
               ],
             ),
           ),
