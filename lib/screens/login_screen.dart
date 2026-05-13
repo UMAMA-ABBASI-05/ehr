@@ -1,11 +1,10 @@
 import 'package:ehr/services/shared_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/doctor.dart';
 import '../services/api_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
-import 'admin_dashboard_screen.dart';
+import 'admin_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,6 +20,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
+  List<dynamic> _hospitals = [];
+  int? _selectedHospitalId;
+  bool _hospitalsLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHospitals();
+  }
+
+  Future<void> _loadHospitals() async {
+    try {
+      final data = await ApiService.getAllHospitals();
+      setState(() {
+        _hospitals = data;
+        _hospitalsLoading = false;
+      });
+    } catch (e) {
+      setState(() => _hospitalsLoading = false);
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -30,38 +51,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedHospitalId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Select Hospitals '), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       try {
-        // Pehle doctor login try karo
-        final doctor = Doctor(
-          name: '',
+        final result = await ApiService.loginDoctor(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          hospitalId: _selectedHospitalId!,
         );
 
-        Map<String, dynamic> result = await ApiService.login(doctor);
         print("Doctor Login Result: $result");
-
-        // Agar doctor login fail ho toh admin login try karo
-        if (result['success'] != true) {
-          result = await ApiService.loginAdmin(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
-          print("Admin Login Result: $result");
-        }
 
         if (result['success'] == true) {
           SessionService().savePatient(result);
 
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('doctorName', result['name'] ?? "User");
-
-          // Role check — admin ka roll 2 hai
-          final int roll = result['roll'] is int
-              ? result['roll']
-              : int.tryParse(result['roll']?.toString() ?? '1') ?? 1;
+          await prefs.setString('doctorName', result['name'] ?? "Doctor");
+          await prefs.setInt('hospitalId', _selectedHospitalId!); // ← save
 
           final dynamic rawId = result['users_id'] ?? result['doctor_id'];
           int userId =
@@ -76,14 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   content: Text("Welcome back!"),
                   backgroundColor: Colors.green),
             );
-
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => roll == 2
-                    ? const AdminDashboardScreen()
-                    : HomeScreen(doctorId: userId),
-              ),
+              MaterialPageRoute(builder: (_) => HomeScreen(doctorId: userId)),
             );
           }
         } else {
@@ -119,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 60),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -130,6 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
+
+                  // Email
                   _buildTextField(
                     controller: _emailController,
                     hint: "Enter your email",
@@ -139,11 +151,98 @@ class _LoginScreenState extends State<LoginScreen> {
                         : null,
                   ),
                   const SizedBox(height: 16),
+
+                  // Password
                   _buildPasswordField(),
+                  const SizedBox(height: 16),
+
+                  // Hospital Dropdown
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _hospitalsLoading
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Color(0xFF3B6FF0)),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Hospitals loading...',
+                                    style: TextStyle(
+                                        color: Color(0xFFAAAAAA),
+                                        fontSize: 14)),
+                              ],
+                            ),
+                          )
+                        : DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: _selectedHospitalId,
+                              isExpanded: true,
+                              hint: const Row(
+                                children: [
+                                  Icon(Icons.local_hospital_outlined,
+                                      color: Color(0xFFAAAAAA), size: 22),
+                                  SizedBox(width: 12),
+                                  Text('Select Hospital',
+                                      style: TextStyle(
+                                          color: Color(0xFFAAAAAA),
+                                          fontSize: 15)),
+                                ],
+                              ),
+                              items: _hospitals
+                                  .map((h) => DropdownMenuItem<int>(
+                                        value: h['hospital_id'] as int,
+                                        child: Text(
+                                          h['name'] ?? 'N/A',
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF333333)),
+                                        ),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedHospitalId = val),
+                            ),
+                          ),
+                  ),
+
                   const SizedBox(height: 48),
+
+                  // Login Button
                   _buildLoginButton(),
                   const SizedBox(height: 20),
+
+                  // Sign Up link
                   _buildSignUpLink(),
+                  const SizedBox(height: 16),
+
+                  // Admin Login link
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AdminLoginScreen()),
+                    ),
+                    child: const Text(
+                      "Login as Admin",
+                      style: TextStyle(
+                        color: Color(0xFF888888),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -153,11 +252,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField(
-      {required TextEditingController controller,
-      required String hint,
-      required IconData icon,
-      String? Function(String?)? validator}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    String? Function(String?)? validator,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -235,8 +335,8 @@ class _LoginScreenState extends State<LoginScreen> {
         const Text("Don't have an account? ",
             style: TextStyle(color: Color(0xFF666666))),
         GestureDetector(
-          onTap: () => Navigator.push(context,
-              MaterialPageRoute(builder: (context) => const SignUpScreen())),
+          onTap: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const SignUpScreen())),
           child: const Text("Sign up",
               style: TextStyle(
                   color: Color(0xFF3B6FF0), fontWeight: FontWeight.bold)),

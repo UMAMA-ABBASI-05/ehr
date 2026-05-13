@@ -97,11 +97,15 @@ class _HomeContentState extends State<HomeContent> {
   Future<void> _fetchPatients() async {
     setState(() => isLoading = true);
     try {
-      // Backend se patients list mangwa rahay hain
-      final data = await ApiService.getPatients();
+      // Session se hospital_id lo
+      final prefs = await SharedPreferences.getInstance();
+      final hospitalId = prefs.getInt('hospitalId') ?? 0;
+
+      final data =
+          await ApiService.getPatients(hospitalId); // ← hospital_id pass karo
       setState(() {
         allPatients = data;
-        filteredPatients = data; // Start mein filter aur main list same hogi
+        filteredPatients = data;
         isLoading = false;
       });
     } catch (e) {

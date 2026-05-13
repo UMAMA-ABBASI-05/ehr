@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/doctor.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
@@ -15,33 +14,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _hospitalIdController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+
+  List<dynamic> _hospitals = [];
+  int? _selectedHospitalId;
+  bool _hospitalsLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHospitals();
+  }
+
+  Future<void> _loadHospitals() async {
+    try {
+      final data = await ApiService.getAllHospitals();
+      setState(() {
+        _hospitals = data;
+        _hospitalsLoading = false;
+      });
+    } catch (e) {
+      setState(() => _hospitalsLoading = false);
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _hospitalIdController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      if (_selectedHospitalId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Hospital select karein'),
+              backgroundColor: Colors.red),
+        );
+        return;
+      }
 
-      final hospitalId = int.tryParse(_hospitalIdController.text.trim()) ?? 0;
+      setState(() => _isLoading = true);
 
       final result = await ApiService.signupDoctor(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        hospitalId: hospitalId,
+        hospitalId: _selectedHospitalId!,
       );
 
       setState(() => _isLoading = false);
+
+      if (!mounted) return;
 
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,25 +149,67 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       setState(() => _isPasswordVisible = !_isPasswordVisible),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Password darj karein';
-                    if (v.length < 6) return 'Kam se kam 6 characters';
+                    if (v.length < 4) return 'Kam se kam 4 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Hospital ID ← New field
-                _buildField(
-                  controller: _hospitalIdController,
-                  hint: "Enter Hospital ID",
-                  icon: Icons.local_hospital_outlined,
-                  keyboardType: TextInputType.number,
-                  validator: (v) {
-                    if (v == null || v.isEmpty)
-                      return 'Hospital ID darj karein';
-                    if (int.tryParse(v) == null)
-                      return 'Sirf number darj karein';
-                    return null;
-                  },
+                // Hospital Dropdown
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _hospitalsLoading
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Color(0xFF3B6FF0)),
+                              ),
+                              SizedBox(width: 12),
+                              Text('Hospitals loading...',
+                                  style: TextStyle(
+                                      color: Color(0xFFAAAAAA), fontSize: 14)),
+                            ],
+                          ),
+                        )
+                      : DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: _selectedHospitalId,
+                            isExpanded: true,
+                            hint: const Row(
+                              children: [
+                                Icon(Icons.local_hospital_outlined,
+                                    color: Color(0xFFAAAAAA), size: 22),
+                                SizedBox(width: 12),
+                                Text('Select Hospital',
+                                    style: TextStyle(
+                                        color: Color(0xFFAAAAAA),
+                                        fontSize: 15)),
+                              ],
+                            ),
+                            items: _hospitals
+                                .map((h) => DropdownMenuItem<int>(
+                                      value: h['hospital_id'] as int,
+                                      child: Text(
+                                          '${h['name']} (ID: ${h['hospital_id']})',
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF333333))),
+                                    ))
+                                .toList(),
+                            onChanged: (val) =>
+                                setState(() => _selectedHospitalId = val),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 48),
 

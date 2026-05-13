@@ -38,19 +38,21 @@ class ApiService {
   static Future<Map<String, dynamic>> loginAdmin(
       String email, String password) async {
     try {
-      final url = Uri.parse('${AppConstants.baseUrl}/login-admin');
-      final response = await http.post(url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'email': email, 'password': password}));
-      print("Admin Login Response: ${response.body}");
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/login-admin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+      print("Admin Login Status: ${res.statusCode}");
+      print("Admin Login Body: ${res.body}");
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
         return {'success': true, ...data};
       }
-      final error = jsonDecode(response.body);
+      final error = jsonDecode(res.body);
       return {'success': false, 'message': error['detail'] ?? 'Login failed'};
     } catch (e) {
-      return {'success': false, 'message': 'Network error'};
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -61,22 +63,22 @@ class ApiService {
     required int hospitalId,
   }) async {
     try {
-      final url = Uri.parse('${AppConstants.baseUrl}/signup');
-      final response = await http.post(url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'name': name,
-            'email': email,
-            'password': password,
-            'hospital_id': hospitalId,
-            'roll': 1,
-          }));
-      final data = jsonDecode(response.body);
-      if (response.statusCode == 201 || response.statusCode == 200)
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'password': password,
+          'hospital_id': hospitalId,
+        }),
+      );
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 201 || res.statusCode == 200)
         return {'success': true, 'message': data['message']};
       return {'success': false, 'message': data['detail'] ?? 'Signup failed'};
     } catch (e) {
-      return {'success': false, 'message': 'Network error'};
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -132,29 +134,31 @@ class ApiService {
   //   }
   // }
 
-  static Future<Map<String, dynamic>> login(Doctor doctor) async {
+  static Future<Map<String, dynamic>> loginDoctor({
+    required String email,
+    required String password,
+    required int hospitalId,
+  }) async {
     try {
-      final url = Uri.parse(
-        '${AppConstants.baseUrl}${AppConstants.loginEndpoint}',
-      );
-      final response = await http.post(
-        url,
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(doctor.toLoginJson()),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'hospital_id': hospitalId,
+        }),
       );
-      print("Backend Raw Response: ${response.body}");
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return {
-          'success': true,
-          ...data,
-        };
-      } else {
-        final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['detail'] ?? 'Login failed'};
+      print("Doctor Login Status: ${res.statusCode}");
+      print("Doctor Login Body: ${res.body}");
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return {'success': true, ...data};
       }
+      final error = jsonDecode(res.body);
+      return {'success': false, 'message': error['detail'] ?? 'Login failed'};
     } catch (e) {
-      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -194,19 +198,14 @@ class ApiService {
     }
   }
 
-  static Future<List<PatientModel>> getPatients() async {
-    try {
-      final url = Uri.parse(
-          '${AppConstants.baseUrl}${AppConstants.getPatientEndpoint}');
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        List jsonResponse = jsonDecode(response.body);
-        return jsonResponse.map((data) => PatientModel.fromJson(data)).toList();
-      }
-      return [];
-    } catch (e) {
-      return [];
+  static Future<List<PatientModel>> getPatients(int hospitalId) async {
+    final res = await http
+        .get(Uri.parse('${AppConstants.baseUrl}/patients/$hospitalId'));
+    if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+      return data.map((e) => PatientModel.fromJson(e)).toList();
     }
+    throw Exception('Failed to load patients');
   }
 
   static Future<List<PatientModel>> searchPatients(String name) async {
@@ -231,12 +230,23 @@ class ApiService {
   }
 
   static Future<bool> savePatient(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('${AppConstants.baseUrl}/patients'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(data),
-    );
-    return response.statusCode == 201;
+    try {
+      // Session se hospital_id lo
+      final prefs = await SharedPreferences.getInstance();
+      final hospitalId = prefs.getInt('hospitalId') ?? 0;
+
+      // hospital_id add karo data mein
+      data['hospital_id'] = hospitalId;
+
+      final res = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/patients'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+      return res.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
   }
 
   // ── Visit Notes ──────────────────────────────────────────────────────────
