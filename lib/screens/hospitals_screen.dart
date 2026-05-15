@@ -79,9 +79,9 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: primaryBlue)),
-                          //   Text('ID: ${h['hospital_id'] ?? 'N/A'}',
-                          //       style: const TextStyle(
-                          //           fontSize: 12, color: Colors.grey)),
+                          Text('ID: ${h['hospital_id'] ?? 'N/A'}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey)),
                         ],
                       ),
                     ),
