@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   // Backend API base URL
-  static const String baseUrl = 'http://192.168.31.246:8001';
+  static const String baseUrl = 'http://192.168.31.247:8001';
 
   // API Endpoints
   //        LOGIN / SING UP
