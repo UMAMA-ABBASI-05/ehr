@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   List<dynamic> _hospitals = [];
-  int? _selectedHospitalId;
+  String? _selectedHospitalId;
   bool _hospitalsLoading = true;
 
   @override
@@ -75,7 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('doctorName', result['name'] ?? "Doctor");
-          await prefs.setInt('hospitalId', _selectedHospitalId!); // ← save
+          await prefs.setString(
+              'hospitalId', _selectedHospitalId!.toString()); // ← save
 
           final dynamic rawId = result['users_id'] ?? result['doctor_id'];
           int userId =
@@ -184,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : DropdownButtonHideUnderline(
-                            child: DropdownButton<int>(
+                            child: DropdownButton<String>(
                               value: _selectedHospitalId,
                               isExpanded: true,
                               hint: const Row(
@@ -199,8 +200,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                               ),
                               items: _hospitals
-                                  .map((h) => DropdownMenuItem<int>(
-                                        value: h['hospital_id'] as int,
+                                  .map((h) => DropdownMenuItem<String>(
+                                        value: h['hospital_id'] as String,
                                         child: Text(
                                           h['name'] ?? 'N/A',
                                           style: const TextStyle(

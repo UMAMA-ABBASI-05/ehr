@@ -7,7 +7,7 @@ class Doctor {
   final String? about;
   final String? phoneNo;
   final DateTime? dateJoin;
-  final int? hospitalId;
+  final String? hospitalId;
   Doctor({
     this.doctorId,
     required this.name,
@@ -38,7 +38,17 @@ class Doctor {
 
   // Doctor object ko JSON mein convert karne ke liye
   Map<String, dynamic> toJson() {
-    return {'name': name, 'email': email, 'password': password};
+    return {
+      'doctor_id': doctorId,
+      'name': name,
+      'email': email,
+      'password': password,
+      'specialization': specialization,
+      'about': about,
+      'phone_no': phoneNo,
+      'date_join': dateJoin?.toIso8601String(),
+      'hospital_id': hospitalId,
+    };
   }
 
   // Login ke liye sirf email aur password

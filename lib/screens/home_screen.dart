@@ -99,8 +99,8 @@ class _HomeContentState extends State<HomeContent> {
     try {
       // Session se hospital_id lo
       final prefs = await SharedPreferences.getInstance();
-      final hospitalId = prefs.getInt('hospitalId') ?? 0;
-
+      final hospitalId = prefs.getString('hospitalId') ?? '0';
+      print("Fetching patients for hospital_id: $hospitalId");
       final data =
           await ApiService.getPatients(hospitalId); // ← hospital_id pass karo
       setState(() {

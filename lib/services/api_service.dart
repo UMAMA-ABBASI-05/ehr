@@ -60,7 +60,7 @@ class ApiService {
     required String name,
     required String email,
     required String password,
-    required int hospitalId,
+    required String hospitalId,
   }) async {
     try {
       final res = await http.post(
@@ -137,7 +137,7 @@ class ApiService {
   static Future<Map<String, dynamic>> loginDoctor({
     required String email,
     required String password,
-    required int hospitalId,
+    required String hospitalId,
   }) async {
     try {
       final res = await http.post(
@@ -198,9 +198,13 @@ class ApiService {
     }
   }
 
-  static Future<List<PatientModel>> getPatients(int hospitalId) async {
-    final res = await http
-        .get(Uri.parse('${AppConstants.baseUrl}/patients/$hospitalId'));
+  static Future<List<PatientModel>> getPatients(String hospitalId) async {
+    print('Fetching patients for hospital_id: $hospitalId');
+    final res = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/all-patients/$hospitalId'), // ← fix
+    );
+    print('Status: ${res.statusCode}');
+    print('Body: ${res.body}');
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
       return data.map((e) => PatientModel.fromJson(e)).toList();
@@ -233,7 +237,7 @@ class ApiService {
     try {
       // Session se hospital_id lo
       final prefs = await SharedPreferences.getInstance();
-      final hospitalId = prefs.getInt('hospitalId') ?? 0;
+      final hospitalId = prefs.getString('hospitalId') ?? '0';
 
       // hospital_id add karo data mein
       data['hospital_id'] = hospitalId;
@@ -352,34 +356,55 @@ class ApiService {
     required String noteTitle,
     required String patientComplaint,
     required String dignosis,
-    String? noteDetails,
+    required String noteDetails,
     required double billAmount,
     String? lab_name,
     List<dynamic>? test_names,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}${AppConstants.addVisitNote}'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "mpi": mpi,
-          "doctor_id": doctorId,
-          "note_title": noteTitle,
-          "patient_complaint": patientComplaint,
-          "dignosis": dignosis,
-          "note_details": noteDetails ?? "",
-          "bill_amount": billAmount,
-          "lab_name": lab_name,
-          "test_names": test_names ?? [],
-        }),
-      );
-      if (response.statusCode == 201) {
-        return {"success": true, "message": "Data inserted successfully"};
-      }
-      return {"success": false, "message": "Server Error"};
-    } catch (e) {
-      return {"success": false, "message": e.toString()};
+    // Session se hospital_id lo
+    final prefs = await SharedPreferences.getInstance();
+    final hospitalId = prefs.getString('hospitalId') ?? '';
+
+    // print({
+    //     'mpi': mpi,
+    //     'doctor_id': doctorId,
+    //     'hospital_id': hospitalId, // ← add karo
+    //     'note_title': noteTitle,
+    //     'patient_complaint': patientComplaint,
+    //     'dignosis': dignosis,
+    //     'note_details': noteDetails,
+    //     'bill_amount': billAmount,
+    //     if (lab_name != null) 'lab_name': lab_name,
+    //     if (test_names != null) 'test_names': test_names,
+    //   });
+    final res = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/visit-note-add'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'mpi': mpi,
+        'doctor_id': doctorId,
+        'hospital_id': hospitalId, // ← add karo
+        'note_title': noteTitle,
+        'patient_complaint': patientComplaint,
+        'dignosis': dignosis,
+        'note_details': noteDetails,
+        'bill_amount': billAmount,
+        if (lab_name != null)
+          'lab_name': lab_name
+        else
+          'lab_name': null, // Ensure key is always sent
+        if (test_names != null)
+          'test_names': test_names
+        else
+          'test_names': null, // Ensure key is always sent
+      }),
+    );
+
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      return {'success': true, ...jsonDecode(res.body)};
     }
+    final error = jsonDecode(res.body);
+    return {'success': false, 'message': error['detail'] ?? 'Failed'};
   }
 
   // Add Hospital

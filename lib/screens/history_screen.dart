@@ -30,7 +30,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           backgroundColor: ok ? Colors.green : Colors.red,
         ),
       );
-      // Refresh history
       setState(() {
         _historyFuture = ApiService.getConfigHistory();
       });
@@ -109,6 +108,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemCount: history.length,
             itemBuilder: (_, i) {
               final item = history[i];
+
+              // Sirf woh actions lo jo 0 se zyada hain
+              final List<Map<String, dynamic>> actions = [];
+              if ((item['add_patient_count'] ?? 0) > 0)
+                actions.add({
+                  'label': 'Added Patient',
+                  'count': item['add_patient_count'],
+                });
+              if ((item['add_visit_count'] ?? 0) > 0)
+                actions.add({
+                  'label': 'Added Visit',
+                  'count': item['add_visit_count'],
+                });
+              if ((item['add_claim_count'] ?? 0) > 0)
+                actions.add({
+                  'label': 'Added Claim',
+                  'count': item['add_claim_count'],
+                });
+
+              // Agar koi action nahi toh skip karo
+              if (actions.isEmpty) return const SizedBox.shrink();
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
@@ -117,35 +138,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.history, color: primaryBlue),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item['hospital'] ?? 'N/A',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: primaryBlue),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Operation: ${item['operation'] ?? 'N/A'}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.black54),
-                          ),
-                          Text(
-                            'Count: ${item['count'] ?? 0}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
+                    // Hospital Name
+                    Text(
+                      item['hospital_name'] ?? 'N/A',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: primaryBlue),
                     ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    const SizedBox(height: 10),
+
+                    // Actions — sirf woh jo > 0
+                    ...actions.map((a) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${a['label']}:',
+                                style: const TextStyle(
+                                    fontSize: 13, color: Colors.black54),
+                              ),
+                              Text(
+                                '${a['count']}',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryBlue),
+                              ),
+                            ],
+                          ),
+                        )),
                   ],
                 ),
               );

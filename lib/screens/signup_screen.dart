@@ -18,7 +18,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
 
   List<dynamic> _hospitals = [];
-  int? _selectedHospitalId;
+  String? _selectedHospitalId;
   bool _hospitalsLoading = true;
 
   @override
@@ -149,7 +149,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       setState(() => _isPasswordVisible = !_isPasswordVisible),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Password darj karein';
-                    if (v.length < 4) return 'Kam se kam 4 characters';
+                    // if (v.length < 4) return 'Kam se kam 4 characters';
                     return null;
                   },
                 ),
@@ -182,7 +182,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         )
                       : DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
+                          child: DropdownButton<String>(
                             value: _selectedHospitalId,
                             isExpanded: true,
                             hint: const Row(
@@ -197,10 +197,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ],
                             ),
                             items: _hospitals
-                                .map((h) => DropdownMenuItem<int>(
-                                      value: h['hospital_id'] as int,
-                                      child: Text(
-                                          '${h['name']} (ID: ${h['hospital_id']})',
+                                .map((h) => DropdownMenuItem<String>(
+                                      value: h['hospital_id'] as String,
+                                      child: Text('${h['name']} ',
                                           style: const TextStyle(
                                               fontSize: 14,
                                               color: Color(0xFF333333))),

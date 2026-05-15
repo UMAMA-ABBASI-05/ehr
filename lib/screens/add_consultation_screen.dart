@@ -6,6 +6,7 @@ import '../widgets/test_search_widget.dart'; // Import check karein
 class AddConsultationScreen extends StatefulWidget {
   final int mpi;
   final int doctorId;
+  
 
   const AddConsultationScreen({
     super.key,
@@ -24,6 +25,7 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
   final _diagnosisController = TextEditingController();
   final _notesController = TextEditingController();
   final _billController = TextEditingController();
+  
 
   // State variables
   List<LoincMaster> _selectedTests = [];
