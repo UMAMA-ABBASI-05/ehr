@@ -1,10 +1,11 @@
-import 'package:ehr/screens/visit_detail_screen.dart';
+import 'package:ehr/screens/show_vitals_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/patient_model.dart';
 import '../models/visit_note.dart';
 import '../services/api_service.dart';
-import 'add_consultation_screen.dart'; // Naya note add karne ke liye
+import 'add_consultation_screen.dart';
+import 'visit_detail_screen.dart';
 
 class ViewPatientScreen extends StatefulWidget {
   final PatientModel patient;
@@ -27,13 +28,9 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
     _refreshData();
   }
 
-  // Data ko refresh karne ka function
   void _refreshData() {
     setState(() {
-      // 1. Patient ki complete details (NIC, Address, Age) fetch karein
       _patientDetails = ApiService.getPatientById(widget.patient.mpi);
-
-      // 2. Doctor ID aur Patient MPI use karte hue notes fetch karein
       _visitNotes =
           ApiService.getVisitNotes(widget.doctorId, widget.patient.mpi);
     });
@@ -55,6 +52,46 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        // ✅ Vitals button yahan add kiya - sirf mpi aur doctorId jayegi
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ShowVitalsScreen(
+                      mpi: widget.patient.mpi,
+                      docId: widget.doctorId.toString(),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(
+                Icons.monitor_heart_outlined,
+                color: Color(0xFF1A3B5D),
+                size: 18,
+              ),
+              label: const Text(
+                'Vitals',
+                style: TextStyle(
+                  color: Color(0xFF1A3B5D),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFEAF2FF),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => _refreshData(),
@@ -74,7 +111,6 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
                     return _buildLoadingBox(150);
                   }
 
-                  // Agar API fail ho jaye toh pechli screen wala data hi dikhayein
                   final p = snapshot.data ?? widget.patient;
 
                   return Container(
@@ -82,8 +118,7 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                          color: const Color(0xFFE8EEF4)), // Border styling
+                      border: Border.all(color: const Color(0xFFE8EEF4)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,9 +161,8 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => AddConsultationScreen(
-                            mpi: widget.patient
-                                .mpi, // Patient object se mpi nikal kar dein
-                            doctorId: widget.doctorId, // Doctor ID pass karein
+                            mpi: widget.patient.mpi,
+                            doctorId: widget.doctorId,
                           ),
                         ),
                       ).then((_) => _refreshData());
@@ -180,7 +214,6 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
     );
   }
 
-  // Helper function for Patient Info rows
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -240,7 +273,6 @@ class _NoteCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        // Sahi BorderSide implementation
         side: const BorderSide(color: Color(0xFFE8EEF4)),
       ),
       child: ListTile(

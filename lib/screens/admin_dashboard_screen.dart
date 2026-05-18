@@ -269,3 +269,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
+// 1. State mein loading add karo:
+// dartbool _configLoading = true;
+// 2. initState mein fetch karo:
+// dart@override
+// void initState() {
+//   super.initState();
+//   _loadConfig();
+// }
+
+// Future<void> _loadConfig() async {
+//   try {
+//     final status = await ApiService.getConfigStatus(); // ye return kare bool
+//     setState(() {
+//       _holdData = status;
+//       _configLoading = false;
+//     });
+//   } catch (e) {
+//     setState(() => _configLoading = false);
+//   }
+// }
+// 3. Checkbox wale Container ko wrap karo:
+// dart_configLoading
+//     ? const Center(child: CircularProgressIndicator(color: primaryBlue))
+//     : Container(
+//         padding: const EdgeInsets.all(16),
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(12),
+//           border: Border.all(color: const Color(0xFFE0E0E0)),
+//         ),
+//         child: Row(
+//           children: [
+//             Checkbox(
+//               value: _holdData,
+//               activeColor: primaryBlue,
+//               onChanged: (v) => setState(() => _holdData = v ?? false),
+//             ),
+//             // ... baaki same
+//           ],
+//         ),
+//       ),

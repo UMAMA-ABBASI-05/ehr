@@ -501,4 +501,14 @@ class ApiService {
       return false;
     }
   }
+
+  // static Future<bool> getConfigStatus() async {
+  //   final uri = Uri.parse('$baseUrl/config/status'); // apna endpoint daalo
+  //   final response = await http.get(uri, headers: _headers());
+  //   if (response.statusCode == 200) {
+  //     final json = jsonDecode(response.body);
+  //     return json['hold'] == true || json['hold'] == 1;
+  //   }
+  //   throw Exception('Failed to load config');
+  // }
 }

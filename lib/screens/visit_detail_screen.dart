@@ -91,6 +91,7 @@ class _VisitNoteDetailScreenState extends State<VisitNoteDetailScreen> {
               const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        // ✅ actions hata diya - Vitals button yahan nahi ab
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _combinedData,
@@ -192,7 +193,7 @@ class _VisitNoteDetailScreenState extends State<VisitNoteDetailScreen> {
 
                 const SizedBox(height: 24),
 
-                // --- SUBMIT CLAIM — HAMESHA VISIBLE ---
+                // --- SUBMIT CLAIM ---
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
