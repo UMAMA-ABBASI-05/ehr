@@ -75,12 +75,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('doctorName', result['name'] ?? "Doctor");
+
           await prefs.setString(
               'hospitalId', _selectedHospitalId!.toString()); // ← save
 
           final dynamic rawId = result['users_id'] ?? result['doctor_id'];
           int userId =
               rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+          await prefs.setInt('docid', result['users_id'] ?? 0);
 
           await ApiService.saveDoctorSession(userId);
 
@@ -100,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _showError(result['message'] ?? "Invalid credentials");
         }
       } catch (e) {
-        _showError("Connection Error: Check IP and Firewall");
+        _showError("Error: $e");
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }

@@ -212,6 +212,33 @@ class ApiService {
     throw Exception('Failed to load patients');
   }
 
+  static Future<Map<String, dynamic>> getPayers(String hospitalId) async {
+    final res = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/get-labs-payers/$hospitalId'),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception('Failed to load payers');
+  }
+
+  static Future<bool> updateDoctorInfo({
+    required int docId,
+    required String phoneNo,
+    required String specialization,
+    required String about,
+  }) async {
+    final res = await http.put(
+      Uri.parse('${AppConstants.baseUrl}/change-doctor/$docId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'phone_no': phoneNo,
+        'specialization': specialization,
+        'about': about,
+      }),
+    );
+    return res.statusCode == 202;
+    ;
+  }
+
   static Future<List<PatientModel>> searchPatients(String name) async {
     try {
       final url =
@@ -241,6 +268,8 @@ class ApiService {
 
       // hospital_id add karo data mein
       data['hospital_id'] = hospitalId;
+
+      print('Saving patient with data: $data'); // Debug print
 
       final res = await http.post(
         Uri.parse('${AppConstants.baseUrl}/patients'),

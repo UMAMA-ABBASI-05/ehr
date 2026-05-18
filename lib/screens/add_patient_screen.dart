@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
 class AddPatientScreen extends StatefulWidget {
@@ -20,20 +21,35 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
   DateTime? dob;
   bool isSubmitting = false;
 
-  final List<Map<String, dynamic>> insuranceCompanies = [
-    {
-      "company_name": "Jubilee Insurance Company",
-      "plans": ["Silver", "Golden", "Bronze"]
-    },
-    {
-      "company_name": "State Life Insurance",
-      "plans": ["Golden", "Silver", "Bronze"]
-    }
-  ];
-
-  List<String> plans = [];
+  // API se payers
+  List<dynamic> _payers = [];
+  bool _payersLoading = true;
   String? selectedCompany;
+  String? selectedPayerId;
+
+  // Plan type same rehta hai
+  final List<String> plans = ['Silver', 'Golden', 'Bronze'];
   String? selectedPlan;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayers();
+  }
+
+  Future<void> _loadPayers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hospitalId = prefs.getString('hospitalId') ?? '';
+      final Map<String, dynamic> data = await ApiService.getPayers(hospitalId);
+      setState(() {
+        _payers = data['payers'] ?? [];
+        _payersLoading = false;
+      });
+    } catch (e) {
+      setState(() => _payersLoading = false);
+    }
+  }
 
   _selectDate() async {
     DateTime? picked = await showDatePicker(
@@ -57,7 +73,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Title ──────────────────────────────────────────────
+                // Title
                 const Text(
                   "Add Patient",
                   style: TextStyle(
@@ -68,17 +84,17 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // ── Name ───────────────────────────────────────────────
+                // Name
                 _buildLabel("Name"),
                 _buildInputField(nameCtrl, "Enter your name"),
                 const SizedBox(height: 16),
 
-                // ── Date of Birth ──────────────────────────────────────
+                // Date of Birth
                 _buildLabel("Date of Birth"),
                 _buildDateField(),
                 const SizedBox(height: 16),
 
-                // ── Gender ─────────────────────────────────────────────
+                // Gender
                 _buildLabel("Gender"),
                 _buildDropdownField<String>(
                   value: selectedGender,
@@ -88,58 +104,80 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── NIC ────────────────────────────────────────────────
+                // NIC
                 _buildLabel("NIC"),
                 _buildInputField(nicCtrl, "Enter NIC"),
                 const SizedBox(height: 16),
 
-                // ── Phone No ───────────────────────────────────────────
+                // Phone No
                 _buildLabel("Phone no"),
-                _buildInputField(phoneCtrl, "Enter Phone no",
-                    keyboardType: TextInputType.phone),
+                _buildInputField(
+                  phoneCtrl,
+                  "Enter Phone no",
+                  keyboardType: TextInputType.phone,
+                ),
                 const SizedBox(height: 16),
 
-                // ── Address ────────────────────────────────────────────
+                // Address
                 _buildLabel("Address"),
                 _buildInputField(addressCtrl, "Enter Address"),
                 const SizedBox(height: 16),
 
-                // ── Insurance Company ──────────────────────────────────
+                // Insurance Company
                 _buildLabel("Insurance Company"),
-                _buildDropdownField<String>(
-                  value: selectedCompany,
-                  hint: "select Insurance Company",
-                  items: insuranceCompanies
-                      .map((c) => c['company_name'] as String)
-                      .toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      selectedCompany = val;
-                      var comp = insuranceCompanies
-                          .firstWhere((e) => e['company_name'] == val);
-                      plans = List<String>.from(comp['plans']);
-                      selectedPlan = null;
-                    });
-                  },
-                ),
+                _payersLoading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF1A365D),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text('Loading insurance companies...',
+                                style: TextStyle(
+                                    color: Color(0xFFBBBBBB), fontSize: 14)),
+                          ],
+                        ),
+                      )
+                    : _buildDropdownField<String>(
+                        value: selectedCompany,
+                        hint: "Select Insurance Company",
+                        items:
+                            _payers.map((p) => p['name'].toString()).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedCompany = val;
+                            selectedPayerId = _payers
+                                .firstWhere(
+                                    (p) => p['name'] == val)['system_id']
+                                .toString();
+                          });
+                        },
+                      ),
                 const SizedBox(height: 16),
 
-                // ── Policy Number ──────────────────────────────────────
+                // Policy Number
                 _buildLabel("Policy Number"),
                 _buildInputField(policyCtrl, "Enter policy Number"),
                 const SizedBox(height: 16),
 
-                // ── Plan Type ──────────────────────────────────────────
-                _buildLabel("Plane Type"),
+                // Plan Type
+                _buildLabel("Plan Type"),
                 _buildDropdownField<String>(
                   value: selectedPlan,
-                  hint: "Select Plane Type",
+                  hint: "Select Plan Type",
                   items: plans,
                   onChanged: (v) => setState(() => selectedPlan = v),
                 ),
                 const SizedBox(height: 36),
 
-                // ── Save button ────────────────────────────────────────
+                // Save button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -178,7 +216,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
     );
   }
 
-  // ── Label widget ────────────────────────────────────────────────────
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -193,7 +230,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
     );
   }
 
-  // ── Text input field ────────────────────────────────────────────────
   Widget _buildInputField(
     TextEditingController ctrl,
     String hint, {
@@ -221,7 +257,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
     );
   }
 
-  // ── Date field ──────────────────────────────────────────────────────
   Widget _buildDateField() {
     return GestureDetector(
       onTap: _selectDate,
@@ -255,7 +290,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
     );
   }
 
-  // ── Dropdown field ──────────────────────────────────────────────────
   Widget _buildDropdownField<T>({
     required T? value,
     required String hint,
@@ -292,7 +326,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
   }
 
   _saveData() async {
-    // ✅ Validation
     if (dob == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select Date of Birth")),
@@ -314,12 +347,16 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
       return;
     }
 
-    // ✅ Start loading
+    if (selectedCompany == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select insurance company")),
+      );
+      return;
+    }
+
     setState(() => isSubmitting = true);
 
     try {
-      print('📍 Saving patient data...');
-
       Map<String, dynamic> data = {
         "name": nameCtrl.text,
         "nic": nicCtrl.text,
@@ -327,22 +364,16 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
         "date_of_birth": DateFormat('yyyy-MM-dd').format(dob!),
         "phone_no": phoneCtrl.text,
         "address": addressCtrl.text,
-        "insurance_company": selectedCompany,
+        "insurance_company": selectedPayerId,
         "plan_type": selectedPlan,
         "policy_number": policyCtrl.text,
       };
 
-      print('   Data: $data');
+      print('Data: $data');
 
-      // ✅ Wait for API response
       bool success = await ApiService.savePatient(data);
 
-      print('   Response: $success');
-
       if (success && mounted) {
-        print('✅ Patient saved successfully');
-
-        // ✅ Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Data Sync to EHR, LIS & Payer!"),
@@ -350,17 +381,11 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
             duration: Duration(seconds: 2),
           ),
         );
-
-        // ✅ Wait for snackbar to show
         await Future.delayed(const Duration(milliseconds: 800));
-
-        // ✅ Then navigate back
         if (mounted && Navigator.canPop(context)) {
-          print('✅ Navigating back...');
           Navigator.pop(context);
         }
       } else if (mounted) {
-        print('❌ Save failed');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Failed to save patient"),
@@ -369,7 +394,6 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
         );
       }
     } catch (e) {
-      print('❌ Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -379,10 +403,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
         );
       }
     } finally {
-      // ✅ Stop loading
-      if (mounted) {
-        setState(() => isSubmitting = false);
-      }
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 

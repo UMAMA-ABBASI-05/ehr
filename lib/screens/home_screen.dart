@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _screens = [
       HomeContent(doctorId: widget.doctorId),
       AddPatientScreen(),
-      const Center(child: Text("Notifications Screen")),
+     // const Center(child: Text("Notifications Screen")),
       ProfileScreen()
     ];
   }
@@ -53,10 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.person_add_outlined),
               activeIcon: Icon(Icons.person_add),
               label: "Add Patient"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: "Notification"),
+          // BottomNavigationBarItem(
+          //     icon: Icon(Icons.notifications_outlined),
+          //     activeIcon: Icon(Icons.notifications),
+          //     label: "Notification"),
           BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
