@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:ehr/models/lab_result.dart';
 import 'package:http/http.dart' as http;
 import '../models/patient_model.dart';
 import '../utils/constants.dart';
@@ -251,6 +252,21 @@ class ApiService {
       return [];
     } catch (e) {
       return [];
+    }
+  }
+
+  static Future<LabResult> getLabResult(int reportId) async {
+    final uri = Uri.parse('${AppConstants.baseUrl}/lab-results/$reportId');
+    final response =
+        await http.get(uri, headers: {'Content-Type': 'application/json'});
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return LabResult.fromJson(json);
+    } else if (response.statusCode == 404) {
+      throw Exception('Lab report not found');
+    } else {
+      throw Exception('Failed to load lab result');
     }
   }
 
