@@ -83,7 +83,7 @@ class _LogsScreenState extends State<LogsScreen> {
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle:
-                                Text('Msg: ${log['operation_heading'] ?? ''}'),
+                                Text('Msg: ${log['dest_message'] ?? ''}'),
                             trailing: Text(
                               log['status'] ?? 'No Status',
                               style: TextStyle(
