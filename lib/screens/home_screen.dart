@@ -1,3 +1,4 @@
+import 'package:ehr/screens/log_dashboard_screen.dart';
 import 'package:ehr/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,8 +26,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _screens = [
       HomeContent(doctorId: widget.doctorId),
       AddPatientScreen(),
-     // const Center(child: Text("Notifications Screen")),
-      ProfileScreen()
+      // const Center(child: Text("Notifications Screen")),
+      ProfileScreen(),
+      LogsScreen()
     ];
   }
 
@@ -61,6 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: "Profile"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: "Logs"),
         ],
       ),
     );
