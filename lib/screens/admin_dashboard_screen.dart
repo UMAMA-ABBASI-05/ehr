@@ -239,7 +239,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              //const SizedBox(height: 16),
 
               // History Button
               SizedBox(

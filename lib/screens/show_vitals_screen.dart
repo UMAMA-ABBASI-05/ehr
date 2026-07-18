@@ -1,372 +1,131 @@
-import 'dart:convert';
+import 'package:ehr/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ShowVitalsScreen extends StatefulWidget {
+  // Peechli screen se sirf mpi aa raha hai
   final int mpi;
-  final String docId;
 
-  const ShowVitalsScreen({
-    super.key,
-    required this.mpi,
-    required this.docId,
-  });
+  const ShowVitalsScreen({super.key, required this.mpi});
 
   @override
   State<ShowVitalsScreen> createState() => _ShowVitalsScreenState();
 }
 
 class _ShowVitalsScreenState extends State<ShowVitalsScreen> {
-  static const Color primaryBlue = Color(0xFF1A3B5D);
-  static const String baseUrl = 'http://192.168.100.143:8001';
-
-  bool _loading = true;
-  String? _error;
-  String _selectedFilter = 'All';
-  final List<String> _filters = ['All', 'BP', 'Sugar', 'Temperature'];
-  List<Map<String, dynamic>> _allVitals = [];
+  List<dynamic> vitalsList = [];
+  bool isLoading = true;
+  String errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchVitals();
+    fetchPatientVitals();
   }
 
-  Future<void> _fetchVitals() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<void> fetchPatientVitals() async {
     try {
-      // ── API CALL ──────────────────────────────────────────
-      // Expected endpoint: GET /vitals/{mpi}?doc_id={docId}
-      // Response expected:
-      // [
-      //   {
-      //     "vital_id": 1,
-      //     "type": "BP",           // "BP" | "Sugar" | "Temperature"
-      //     "systolic": "120",      // only for BP
-      //     "diastolic": "80",      // only for BP
-      //     "value": null,          // for Sugar & Temperature
-      //     "unit": "mmHg",
-      //     "meal_time": null,      // only for Sugar: "Before Meal" | "After Meal"
-      //     "recorded_at": "2026-04-28T10:30:00"
-      //   },
-      //   {
-      //     "vital_id": 2,
-      //     "type": "Sugar",
-      //     "systolic": null,
-      //     "diastolic": null,
-      //     "value": "95",
-      //     "unit": "mg/dL",
-      //     "meal_time": "Before Meal",
-      //     "recorded_at": "2026-04-28T08:00:00"
-      //   },
-      //   {
-      //     "vital_id": 3,
-      //     "type": "Temperature",
-      //     "systolic": null,
-      //     "diastolic": null,
-      //     "value": "98.6",
-      //     "unit": "°F",
-      //     "meal_time": null,
-      //     "recorded_at": "2026-04-27T09:00:00"
-      //   }
-      // ]
-
-      final uri = Uri.parse(
-        '$baseUrl/vitals/${widget.mpi}?doc_id=${widget.docId}',
-      );
-
-      print('📍 Fetching vitals: $uri');
-
-      final response = await http.get(uri).timeout(
-            const Duration(seconds: 10),
-          );
-
-      print('   Response: ${response.statusCode}');
-      print('   Body: ${response.body}');
+      // widget.mpi se peechli screen wali ID use ki
+      final url =
+          Uri.parse('${AppConstants.baseUrl}/patient/vitals?mpi=${widget.mpi}');
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-
         setState(() {
-          _allVitals = data.map((item) {
-            return {
-              'type': item['type'] ?? '',
-              'systolic': item['systolic']?.toString(),
-              'diastolic': item['diastolic']?.toString(),
-              'value': item['value']?.toString(),
-              'unit': item['unit'] ?? '',
-              'meal_time': item['meal_time'],
-              'datetime':
-                  DateTime.tryParse(item['recorded_at']?.toString() ?? '') ??
-                      DateTime.now(),
-            };
-          }).toList();
-          _loading = false;
-        });
-      } else if (response.statusCode == 404) {
-        setState(() {
-          _allVitals = [];
-          _loading = false;
+          vitalsList = json.decode(response.body);
+          isLoading = false;
         });
       } else {
-        throw Exception('Server error ${response.statusCode}');
+        setState(() {
+          errorMessage = 'server error ';
+          isLoading = false;
+        });
       }
     } catch (e) {
-      print('❌ Vitals error: $e');
       setState(() {
-        _error = 'Failed to load vitals. Please try again.';
-        _loading = false;
+        errorMessage = 'Connection error: $e';
+        isLoading = false;
       });
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────
-  List<Map<String, dynamic>> get _filtered {
-    if (_selectedFilter == 'All') return _allVitals;
-    return _allVitals.where((v) => v['type'] == _selectedFilter).toList();
-  }
-
-  String _getValue(Map<String, dynamic> v) => v['type'] == 'BP'
-      ? '${v['systolic'] ?? '-'}/${v['diastolic'] ?? '-'}'
-      : v['value'] ?? '-';
-
-  String _formatDate(DateTime dt) {
-    const m = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-    final min = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${dt.day} ${m[dt.month - 1]} ${dt.year}\n$h:$min $period';
-  }
-
-  Color _typeColor(String t) => t == 'BP'
-      ? const Color(0xFF1565C0)
-      : t == 'Sugar'
-          ? const Color(0xFF2E7D32)
-          : const Color(0xFFAD1457);
-
-  IconData _typeIcon(String t) => t == 'BP'
-      ? Icons.favorite_rounded
-      : t == 'Sugar'
-          ? Icons.water_drop_rounded
-          : Icons.thermostat_rounded;
-
-  // ── Build ─────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: primaryBlue, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Patient Vitals',
-          style: TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: primaryBlue),
-            onPressed: _fetchVitals,
-          ),
-        ],
+        title: const Text('Patient Vitals'),
+        backgroundColor: Colors.teal,
       ),
-      body: Column(
-        children: [
-          // ── Filter Pills ──────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((f) {
-                  final active = _selectedFilter == f;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = f),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: active ? primaryBlue : const Color(0xFFF0F4FF),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        f,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: active ? Colors.white : primaryBlue,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage.isNotEmpty
+              ? Center(child: Text(errorMessage))
+              : vitalsList.isEmpty
+                  ? const Center(child: Text('Koi vitals maujood nahi hain'))
+                  : ListView.builder(
+                      itemCount: vitalsList.length,
+                      itemBuilder: (context, index) {
+                        final vital = vitalsList[index];
+                        final String vitalType =
+                            (vital['type'] ?? '').toString().toLowerCase();
 
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-          // ── Body ─────────────────────────────────────────
-          Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: primaryBlue))
-                : _error != null
-                    ? _buildError()
-                    : _filtered.isEmpty
-                        ? _buildEmpty()
-                        : _buildList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildList() {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: _filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final v = _filtered[i];
-        final color = _typeColor(v['type']);
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8EEF4)),
-          ),
-          child: Row(
-            children: [
-              // ── Icon ──
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(_typeIcon(v['type']), color: color, size: 22),
-              ),
-              const SizedBox(width: 14),
-
-              // ── Value ──
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      v['type'],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _getValue(v),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(
-                            v['unit'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF888888),
+                        // 1. Agar Type SUGAR hai
+                        if (vitalType == 'sugar') {
+                          return Card(
+                            margin: const EdgeInsets.all(8.0),
+                            child: ListTile(
+                              leading: const Icon(Icons.biotech,
+                                  color: Colors.orange),
+                              title: Text('Type: ${vital['type']}'),
+                              subtitle: Text(
+                                  'Value: ${vital['value']} ${vital['unit']}'),
+                              trailing: Text(vital['meal_time'] ?? 'N/A'),
                             ),
+                          );
+                        }
+
+                        // 2. Agar Type BP (Blood Pressure) hai
+                        if (vitalType == 'bp' ||
+                            vitalType == 'blood pressure') {
+                          return Card(
+                            margin: const EdgeInsets.all(8.0),
+                            child: ListTile(
+                              leading:
+                                  const Icon(Icons.favorite, color: Colors.red),
+                              title: Text('Type: ${vital['type']}'),
+                              subtitle: Text(
+                                  'BP: ${vital['systolic']}/${vital['diastolic']} ${vital['unit']}'),
+                            ),
+                          );
+                        }
+
+                        // 3. Agar Type TEMPERATURE hai
+                        if (vitalType == 'temperature' || vitalType == 'temp') {
+                          return Card(
+                            margin: const EdgeInsets.all(8.0),
+                            child: ListTile(
+                              leading: const Icon(Icons.thermostat,
+                                  color: Colors.blue),
+                              title: Text('Type: ${vital['type']}'),
+                              subtitle: Text(
+                                  'Value: ${vital['value']} ${vital['unit']}'),
+                            ),
+                          );
+                        }
+
+                        // Fallback: Agar koi aur type ho to sirf type aur value dikhaye
+                        return Card(
+                          margin: const EdgeInsets.all(8.0),
+                          child: ListTile(
+                            leading: const Icon(Icons.health_and_safety,
+                                color: Colors.teal),
+                            title: Text('Type: ${vital['type'] ?? 'Unknown'}'),
+                            subtitle: Text(
+                                'Value: ${vital['value'] ?? ''} ${vital['unit'] ?? ''}'),
                           ),
-                        ),
-                      ],
-                    ),
-                    if (v['type'] == 'Sugar' && v['meal_time'] != null)
-                      Text(
-                        v['meal_time'],
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF888888),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // ── Date ──
-              Text(
-                _formatDate(v['datetime']),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF999999),
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildError() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.wifi_off_rounded,
-              size: 40, color: Color(0xFFBBBBBB)),
-          const SizedBox(height: 8),
-          Text(_error!, style: const TextStyle(color: Color(0xFF888888))),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: _fetchVitals,
-            child: const Text('Retry', style: TextStyle(color: primaryBlue)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Text(
-        'No ${_selectedFilter == 'All' ? '' : _selectedFilter} vitals found',
-        style: const TextStyle(color: Color(0xFF999999), fontSize: 14),
-      ),
+                        );
+                      }),
     );
   }
 }

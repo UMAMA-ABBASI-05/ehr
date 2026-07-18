@@ -63,7 +63,6 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
                   MaterialPageRoute(
                     builder: (_) => ShowVitalsScreen(
                       mpi: widget.patient.mpi,
-                      docId: widget.doctorId.toString(),
                     ),
                   ),
                 );
@@ -131,7 +130,7 @@ class _ViewPatientScreenState extends State<ViewPatientScreen> {
                               color: Color(0xFF1A3B5D)),
                         ),
                         const SizedBox(height: 12),
-                        _infoRow("Age", "${p.age ?? 'N/A'}"),
+                        // _infoRow("Age", "${p.age ?? 'N/A'}"),
                         _infoRow("Gender", p.gender ?? 'N/A'),
                         _infoRow("Phone no", p.phoneNo ?? 'N/A'),
                         _infoRow("NIC", p.nic ?? 'N/A'),

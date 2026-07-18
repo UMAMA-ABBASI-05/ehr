@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/loinc_master.dart';
 import '../services/api_service.dart';
 import '../widgets/test_search_widget.dart'; // Import check karein
@@ -6,7 +7,6 @@ import '../widgets/test_search_widget.dart'; // Import check karein
 class AddConsultationScreen extends StatefulWidget {
   final int mpi;
   final int doctorId;
-  
 
   const AddConsultationScreen({
     super.key,
@@ -25,12 +25,20 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
   final _diagnosisController = TextEditingController();
   final _notesController = TextEditingController();
   final _billController = TextEditingController();
-  
+  List<dynamic> _labs = [];
+  bool _labLoading = true;
+  String? selectedlab;
+  String? selectedlabId;
 
   // State variables
   List<LoincMaster> _selectedTests = [];
   String _selectedLab = "IDC";
   bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadlabs();
+  }
 
   // Save Function
   void _saveConsultation() async {
@@ -56,7 +64,7 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
         noteDetails: _notesController.text,
         billAmount: double.tryParse(_billController.text) ?? 0.0,
         // Rule: lab_name is required only if tests are ordered
-        lab_name: _selectedTests.isNotEmpty ? _selectedLab : null,
+        lab_name: _selectedTests.isNotEmpty ? selectedlab : null,
         test_names: _selectedTests.isNotEmpty
             ? _selectedTests.map((t) => t.toJson()).toList()
             : null,
@@ -75,6 +83,20 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       _showSnack("Connection Error: $e", Colors.red);
+    }
+  }
+
+  Future<void> _loadlabs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hospitalId = prefs.getString('hospitalId') ?? '';
+      final Map<String, dynamic> data = await ApiService.getPayers(hospitalId);
+      setState(() {
+        _labs = data['labs'] ?? [];
+        _labLoading = false;
+      });
+    } catch (e) {
+      setState(() => _labLoading = false);
     }
   }
 
@@ -133,6 +155,21 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
                 _buildInput(_notesController, "Additional details...",
                     maxLines: 3),
 
+                _buildLabel("choose lab"),
+                _buildDropdownField<String>(
+                  value: selectedlab,
+                  hint: "Select lab",
+                  items: _labs.map((p) => p['name'].toString()).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedlab = val;
+                      selectedlabId = _labs
+                          .firstWhere((p) => p['name'] == val)['system_id']
+                          .toString();
+                    });
+                  },
+                ),
+
                 const SizedBox(height: 20),
                 const Text("Order Lab Tests",
                     style:
@@ -140,9 +177,9 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
 
                 Row(
                   children: [
-                    _labChip("IDC"),
+                    // _labChip("IDC"),
                     const SizedBox(width: 10),
-                    _labChip("MIR"),
+                    // _labChip("MIR"),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: _openTestSearch,
@@ -256,6 +293,41 @@ class _AddConsultationScreenState extends State<AddConsultationScreen> {
           content: Text(msg),
           backgroundColor: color,
           behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Widget _buildDropdownField<T>({
+    required T? value,
+    required String hint,
+    required List<String> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          hint: Text(hint,
+              style: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 14)),
+          icon: const Icon(Icons.keyboard_arrow_down,
+              color: Color(0xFF888888), size: 20),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF333333)),
+          items: items
+              .map((e) => DropdownMenuItem<T>(
+                    value: e as T,
+                    child: Text(e),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
     );
   }
 }

@@ -96,6 +96,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
 
                 // Gender
                 _buildLabel("Gender"),
+
                 _buildDropdownField<String>(
                   value: selectedGender,
                   hint: "Select Gender",
@@ -364,7 +365,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
         "date_of_birth": DateFormat('yyyy-MM-dd').format(dob!),
         "phone_no": phoneCtrl.text,
         "address": addressCtrl.text,
-        "insurance_company": selectedPayerId,
+        "insurance_company": "PAYER-1",
         "plan_type": selectedPlan,
         "policy_number": policyCtrl.text,
       };
